@@ -80,6 +80,24 @@ class AutoCompleteUI {
         });
 
         document.addEventListener('focus', (e) => {
+            // Debug: Log all textarea focus events to help identify GitHub's selectors
+            if (e.target.tagName === 'TEXTAREA' && window.location.hostname.includes('github.com')) {
+                console.log('GitHub PR AutoComplete: Textarea focused - Debug Info:', {
+                    tagName: e.target.tagName,
+                    name: e.target.name,
+                    className: e.target.className,
+                    id: e.target.id,
+                    placeholder: e.target.placeholder,
+                    'aria-label': e.target.getAttribute('aria-label'),
+                    'data-testid': e.target.getAttribute('data-testid'),
+                    'data-target': e.target.getAttribute('data-target'),
+                    'data-component': e.target.getAttribute('data-component'),
+                    parentClasses: e.target.parentElement?.className,
+                    formAction: e.target.closest('form')?.action,
+                    shouldActivate: this.engine.shouldActivateFor(e.target)
+                });
+            }
+            
             if (this.engine.shouldActivateFor(e.target)) {
                 this.currentInput = e.target;
             }
@@ -341,6 +359,34 @@ class AutoCompleteUI {
             selectedIndex: this.selectedIndex
         };
     }
+
+    /**
+     * Debug function to find all textareas on the page and their attributes
+     */
+    debugTextareas() {
+        const textareas = document.querySelectorAll('textarea');
+        console.log(`Found ${textareas.length} textareas on the page:`);
+        
+        textareas.forEach((textarea, index) => {
+            console.log(`Textarea ${index + 1}:`, {
+                tagName: textarea.tagName,
+                name: textarea.name,
+                className: textarea.className,
+                id: textarea.id,
+                placeholder: textarea.placeholder,
+                'aria-label': textarea.getAttribute('aria-label'),
+                'data-testid': textarea.getAttribute('data-testid'),
+                'data-target': textarea.getAttribute('data-target'),
+                'data-component': textarea.getAttribute('data-component'),
+                parentClasses: textarea.parentElement?.className,
+                formAction: textarea.closest('form')?.action,
+                shouldActivate: this.engine.shouldActivateFor(textarea),
+                element: textarea
+            });
+        });
+        
+        return textareas;
+    }
 }
 
 // Initialize the auto-complete UI when the page loads
@@ -370,7 +416,19 @@ function initializeAutoComplete() {
         
         // Make it globally accessible for debugging
         window.githubPRAutoComplete = autoCompleteUI;
+        
+        // Add global debug functions
+        window.debugGitHubTextareas = () => autoCompleteUI.debugTextareas();
+        window.checkTextareaActivation = (element) => {
+            if (!element) {
+                console.log('Usage: checkTextareaActivation(textareaElement)');
+                return;
+            }
+            return autoCompleteUI.engine.shouldActivateFor(element);
+        };
+        
         console.log('GitHub PR AutoComplete: UI instance created and available at window.githubPRAutoComplete');
+        console.log('Debug functions available: window.debugGitHubTextareas() and window.checkTextareaActivation(element)');
     }, 2000); // Increased delay to ensure GitHub content is loaded
 }
 
