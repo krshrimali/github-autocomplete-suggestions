@@ -88,17 +88,6 @@ The extension consists of several key components:
 - **`styles/autocomplete.css`**: GitHub-integrated styling
 - **`background/background.js`**: Extension background service worker
 
-### Building from C++ Source
-
-The original C++ implementation is available in the repository. To build and test:
-
-```bash
-mkdir build && cd build
-cmake ..
-make
-./auto-complete-cpp ../inputSamples/input.txt "h"
-```
-
 ### Debugging
 
 1. Open Chrome DevTools on a GitHub PR page
@@ -144,11 +133,6 @@ This extension:
 ```bash
 # Install dependencies (if any)
 npm install
-
-# For C++ development
-mkdir build && cd build
-cmake ..
-make
 
 # Load extension in Chrome for testing
 # Go to chrome://extensions/, enable Developer mode, click "Load unpacked"
