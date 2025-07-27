@@ -3,297 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub PR AutoComplete - Test</title>
+    <title>GitHub PR AutoComplete Test - Pull Request #123</title>
+    <link rel="stylesheet" href="styles/autocomplete.css">
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f6f8fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 20px;
+            background-color: #f6f8fa;
         }
         .container {
+            max-width: 1200px;
+            margin: 0 auto;
             background: white;
+            border-radius: 6px;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        textarea {
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+        }
+        .test-textarea {
             width: 100%;
-            height: 100px;
+            min-height: 100px;
             padding: 10px;
             border: 1px solid #d0d7de;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+            resize: vertical;
+        }
+        .github-simulation {
+            background: #f6f8fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .file-header {
+            font-weight: bold;
+            color: #24292f;
+            margin-bottom: 10px;
+        }
+        .blob-code-inner {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+            background: white;
+            padding: 5px 10px;
+            margin: 2px 0;
+            border-left: 3px solid #28a745;
+        }
+        .removed-line {
+            border-left-color: #d73a49;
+            background: #ffeef0;
+        }
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
             border-radius: 4px;
-            font-family: monospace;
-            font-size: 14px;
+            margin: 10px 0;
         }
         .stats {
-            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
             padding: 15px;
-            background: #f6f8fa;
-            border-radius: 4px;
+            border-radius: 6px;
+            border: 1px solid #e1e4e8;
         }
-        .test-results {
-            margin-top: 20px;
+        .stat-title {
+            font-weight: bold;
+            color: #586069;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
         }
-        .test-case {
-            margin: 10px 0;
-            padding: 10px;
-            border-left: 4px solid #28a745;
-            background: #f6ffed;
-        }
-        .test-case.failed {
-            border-left-color: #dc3545;
-            background: #fff5f5;
-        }
-        button {
-            background: #0969da;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        button:hover {
-            background: #0860ca;
+        .stat-value {
+            font-size: 18px;
+            color: #24292f;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>GitHub PR AutoComplete - Test Page</h1>
-        <p>This page tests the JavaScript Trie implementation and auto-complete functionality.</p>
+        <h1>GitHub PR AutoComplete Test</h1>
+        <p>This page simulates a GitHub Pull Request environment to test the auto-complete functionality.</p>
         
-        <h2>Test the Trie Implementation</h2>
-        <button onclick="runTests()">Run All Tests</button>
-        <button onclick="testWithSampleData()">Test with Sample Data</button>
-        <button onclick="clearResults()">Clear Results</button>
-        
-        <div id="testResults" class="test-results"></div>
-        
-        <h2>Interactive Test</h2>
-        <p>Type in the textarea below to test auto-complete suggestions:</p>
-        <textarea id="testInput" placeholder="Start typing... (e.g., 'fun', 'cla', 'ret')"></textarea>
-        
-        <div class="stats">
-            <h3>Trie Statistics</h3>
-            <div id="stats"></div>
+        <!-- Simulate GitHub PR URL -->
+        <script>
+            // Simulate being on a GitHub PR page
+            if (!window.location.href.includes('/pull/')) {
+                history.replaceState({}, '', window.location.href.replace('.html', '') + '/pull/123');
+            }
+        </script>
+
+        <!-- Debug Information -->
+        <div class="debug-info">
+            <h3>Debug Information</h3>
+            <div id="debug-output">Extension loading...</div>
+            <button onclick="refreshDebugInfo()">Refresh Debug Info</button>
+            <button onclick="manualRefresh()">Manual Refresh Words</button>
+            <button onclick="showExtractedWords()">Show Extracted Words</button>
         </div>
-        
+
+        <!-- Statistics -->
         <div class="stats">
-            <h3>Current Suggestions</h3>
-            <div id="suggestions"></div>
+            <div class="stat-card">
+                <div class="stat-title">Total Words</div>
+                <div class="stat-value" id="total-words">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Trie Size</div>
+                <div class="stat-value" id="trie-size">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Initialized</div>
+                <div class="stat-value" id="initialized">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Current Suggestions</div>
+                <div class="stat-value" id="current-suggestions">-</div>
+            </div>
+        </div>
+
+        <!-- Simulated GitHub Files Changed Content -->
+        <div id="files_bucket" class="github-simulation">
+            <h2>Files changed (3)</h2>
+            
+            <div class="file-header">
+                <span title="src/components/UserProfile.tsx">src/components/UserProfile.tsx</span>
+            </div>
+            <div class="blob-code-inner">import React, { useState, useEffect } from 'react';</div>
+            <div class="blob-code-inner">import { getUserData, updateUserProfile } from '../api/userService';</div>
+            <div class="blob-code-inner">import { validateEmail, formatPhoneNumber } from '../utils/validators';</div>
+            <div class="blob-code-inner"></div>
+            <div class="blob-code-inner">interface UserProfileProps {</div>
+            <div class="blob-code-inner">  userId: string;</div>
+            <div class="blob-code-inner">  onProfileUpdate: (profile: UserProfile) => void;</div>
+            <div class="blob-code-inner">}</div>
+            <div class="blob-code-inner"></div>
+            <div class="blob-code-inner">const UserProfile: React.FC&lt;UserProfileProps&gt; = ({ userId, onProfileUpdate }) =&gt; {</div>
+            <div class="blob-code-inner">  const [userProfile, setUserProfile] = useState&lt;UserProfile | null&gt;(null);</div>
+            <div class="blob-code-inner">  const [isLoading, setIsLoading] = useState(true);</div>
+            <div class="blob-code-inner">  const [errorMessage, setErrorMessage] = useState('');</div>
+            <div class="blob-code-inner">  const [formData, setFormData] = useState({</div>
+            <div class="blob-code-inner">    firstName: '',</div>
+            <div class="blob-code-inner">    lastName: '',</div>
+            <div class="blob-code-inner">    emailAddress: '',</div>
+            <div class="blob-code-inner">    phoneNumber: '',</div>
+            <div class="blob-code-inner">    companyName: '',</div>
+            <div class="blob-code-inner">    jobTitle: ''</div>
+            <div class="blob-code-inner">  });</div>
+
+            <div class="file-header" style="margin-top: 20px;">
+                <span title="src/utils/apiHelpers.js">src/utils/apiHelpers.js</span>
+            </div>
+            <div class="blob-code-inner">export const fetchUserData = async (userId) => {</div>
+            <div class="blob-code-inner">  const apiEndpoint = `/api/users/${userId}`;</div>
+            <div class="blob-code-inner">  const requestHeaders = {</div>
+            <div class="blob-code-inner">    'Content-Type': 'application/json',</div>
+            <div class="blob-code-inner">    'Authorization': `Bearer ${getAuthToken()}`</div>
+            <div class="blob-code-inner">  };</div>
+            <div class="blob-code-inner">  </div>
+            <div class="blob-code-inner">  try {</div>
+            <div class="blob-code-inner">    const responseData = await fetch(apiEndpoint, {</div>
+            <div class="blob-code-inner">      method: 'GET',</div>
+            <div class="blob-code-inner">      headers: requestHeaders</div>
+            <div class="blob-code-inner">    });</div>
+            <div class="blob-code-inner">    </div>
+            <div class="blob-code-inner">    if (!responseData.ok) {</div>
+            <div class="blob-code-inner">      throw new Error('Failed to fetch user data');</div>
+            <div class="blob-code-inner">    }</div>
+            <div class="blob-code-inner">    </div>
+            <div class="blob-code-inner">    return await responseData.json();</div>
+            <div class="blob-code-inner">  } catch (error) {</div>
+            <div class="blob-code-inner">    console.error('Error fetching user:', error);</div>
+            <div class="blob-code-inner">    throw error;</div>
+            <div class="blob-code-inner">  }</div>
+            <div class="blob-code-inner">};</div>
+
+            <div class="file-header" style="margin-top: 20px;">
+                <span title="README.md">README.md</span>
+            </div>
+            <div class="blob-code-inner"># User Management System</div>
+            <div class="blob-code-inner"></div>
+            <div class="blob-code-inner">This application provides comprehensive user management functionality including:</div>
+            <div class="blob-code-inner"></div>
+            <div class="blob-code-inner">- User profile management</div>
+            <div class="blob-code-inner">- Authentication and authorization</div>
+            <div class="blob-code-inner">- Data validation and sanitization</div>
+            <div class="blob-code-inner">- API integration with external services</div>
+            <div class="blob-code-inner">- Responsive user interface design</div>
+            <div class="blob-code-inner"></div>
+            <div class="blob-code-inner">## Key Features</div>
+            <div class="blob-code-inner"></div>
+            <div class="blob-code-inner">### UserProfile Component</div>
+            <div class="blob-code-inner">- Handles user data display and editing</div>
+            <div class="blob-code-inner">- Supports real-time validation</div>
+            <div class="blob-code-inner">- Integrates with userService API</div>
+        </div>
+
+        <!-- Test Comment Areas -->
+        <div class="test-section">
+            <h3>Test Comment Area (PR Comment)</h3>
+            <p>Type in the textarea below to test auto-complete. Try typing words that appear in the files above like:</p>
+            <ul>
+                <li><strong>camelCase words:</strong> userProfile, firstName, lastName, emailAddress, phoneNumber</li>
+                <li><strong>Component names:</strong> UserProfile, UserProfileProps</li>
+                <li><strong>Function names:</strong> getUserData, updateUserProfile, validateEmail, formatPhoneNumber</li>
+                <li><strong>API terms:</strong> apiEndpoint, requestHeaders, responseData</li>
+                <li><strong>General terms:</strong> management, authentication, authorization, validation</li>
+            </ul>
+            <textarea 
+                name="comment[body]" 
+                class="test-textarea" 
+                placeholder="Start typing to see auto-complete suggestions... Try 'user', 'api', 'form', etc."
+            ></textarea>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Review Comment Area</h3>
+            <textarea 
+                name="pull_request_review[body]" 
+                class="test-textarea" 
+                placeholder="Test review comment auto-complete here..."
+            ></textarea>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Generic Comment Field</h3>
+            <textarea 
+                class="js-comment-field test-textarea" 
+                placeholder="Test generic comment field auto-complete here..."
+            ></textarea>
+        </div>
+
+        <!-- Word List Display -->
+        <div class="test-section">
+            <h3>Extracted Words</h3>
+            <div id="word-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #f8f9fa;">
+                Loading...
+            </div>
         </div>
     </div>
 
-    <!-- Include the Trie implementation -->
+    <!-- Load the extension scripts -->
     <script src="lib/trie.js"></script>
-    
+    <script src="lib/parser.js"></script>
+    <script src="lib/autocomplete.js"></script>
+    <script src="content/content.js"></script>
+
     <script>
-        // Global test variables
-        let testTrie = new ACT();
-        let testResults = [];
-        
-        // Test functions
-        function runTests() {
-            testResults = [];
-            const resultsDiv = document.getElementById('testResults');
-            resultsDiv.innerHTML = '<h3>Running Tests...</h3>';
+        // Debug functions
+        function refreshDebugInfo() {
+            const debugOutput = document.getElementById('debug-output');
             
-            // Test 1: Basic insertion and search
-            test('Basic Insertion and Search', () => {
-                const trie = new ACT();
-                trie.insert('hello');
-                trie.insert('world');
-                trie.insert('help');
+            if (window.githubPRAutoComplete) {
+                const stats = window.githubPRAutoComplete.getStats();
+                debugOutput.innerHTML = `
+                    <strong>Extension Status:</strong> Active<br>
+                    <strong>Initialized:</strong> ${stats.isUIVisible}<br>
+                    <strong>Engine Initialized:</strong> ${stats.isUIVisible}<br>
+                    <strong>Current Input Active:</strong> ${stats.currentInputActive}<br>
+                    <strong>Selected Index:</strong> ${stats.selectedIndex}<br>
+                    <strong>Last Update:</strong> ${stats.lastUpdate}
+                `;
                 
-                const suggestions = trie.autoComplete('hel');
-                return suggestions.includes('hello') && suggestions.includes('help') && suggestions.length === 2;
-            });
-            
-            // Test 2: Empty prefix
-            test('Empty Prefix', () => {
-                const trie = new ACT();
-                trie.insert('test');
-                const suggestions = trie.autoComplete('');
-                return suggestions.length === 0;
-            });
-            
-            // Test 3: No matches
-            test('No Matches', () => {
-                const trie = new ACT();
-                trie.insert('hello');
-                const suggestions = trie.autoComplete('xyz');
-                return suggestions.length === 0;
-            });
-            
-            // Test 4: Case sensitivity
-            test('Case Sensitivity', () => {
-                const trie = new ACT();
-                trie.insert('Hello');
-                trie.insert('hello');
-                const suggestions = trie.autoComplete('hel');
-                return suggestions.includes('hello') && suggestions.length === 2;
-            });
-            
-            // Test 5: Contains method
-            test('Contains Method', () => {
-                const trie = new ACT();
-                trie.insert('function');
-                trie.insert('class');
-                return trie.contains('function') && trie.contains('class') && !trie.contains('variable');
-            });
-            
-            // Test 6: Size method
-            test('Size Method', () => {
-                const trie = new ACT();
-                trie.insert('one');
-                trie.insert('two');
-                trie.insert('three');
-                return trie.size() === 3;
-            });
-            
-            // Test 7: Duplicate insertions
-            test('Duplicate Insertions', () => {
-                const trie = new ACT();
-                trie.insert('duplicate');
-                trie.insert('duplicate');
-                return trie.size() === 1;
-            });
-            
-            displayResults();
-        }
-        
-        function test(name, testFunction) {
-            try {
-                const result = testFunction();
-                testResults.push({
-                    name: name,
-                    passed: result,
-                    error: null
-                });
-            } catch (error) {
-                testResults.push({
-                    name: name,
-                    passed: false,
-                    error: error.message
-                });
+                // Update stats cards
+                document.getElementById('total-words').textContent = stats.totalWords || '-';
+                document.getElementById('trie-size').textContent = stats.trieSize || '-';
+                document.getElementById('initialized').textContent = stats.isInitialized ? 'Yes' : 'No';
+                document.getElementById('current-suggestions').textContent = stats.currentSuggestions || '0';
+            } else {
+                debugOutput.innerHTML = '<span style="color: red;">Extension not loaded or not accessible</span>';
             }
         }
-        
-        function displayResults() {
-            const resultsDiv = document.getElementById('testResults');
-            let html = '<h3>Test Results</h3>';
-            
-            const passed = testResults.filter(r => r.passed).length;
-            const total = testResults.length;
-            
-            html += `<p><strong>${passed}/${total} tests passed</strong></p>`;
-            
-            testResults.forEach(result => {
-                const className = result.passed ? 'test-case' : 'test-case failed';
-                const status = result.passed ? '✅ PASSED' : '❌ FAILED';
-                const error = result.error ? ` - Error: ${result.error}` : '';
+
+        function manualRefresh() {
+            if (window.githubPRAutoComplete && window.githubPRAutoComplete.engine) {
+                window.githubPRAutoComplete.engine.refresh();
+                setTimeout(refreshDebugInfo, 1000);
+            } else {
+                alert('Extension not loaded yet');
+            }
+        }
+
+        function showExtractedWords() {
+            if (window.githubPRAutoComplete && window.githubPRAutoComplete.engine) {
+                const wordCache = window.githubPRAutoComplete.engine.wordCache;
+                const wordArray = Array.from(wordCache).sort();
+                const wordList = document.getElementById('word-list');
                 
-                html += `<div class="${className}">
-                    <strong>${result.name}</strong>: ${status}${error}
-                </div>`;
-            });
-            
-            resultsDiv.innerHTML = html;
+                if (wordArray.length > 0) {
+                    wordList.innerHTML = `
+                        <strong>Total: ${wordArray.length} words</strong><br><br>
+                        ${wordArray.map(word => `<span style="display: inline-block; margin: 2px 5px 2px 0; padding: 2px 6px; background: #e1f5fe; border-radius: 3px; font-family: monospace;">${word}</span>`).join('')}
+                    `;
+                } else {
+                    wordList.innerHTML = '<em>No words extracted yet</em>';
+                }
+            } else {
+                document.getElementById('word-list').innerHTML = '<em>Extension not loaded</em>';
+            }
         }
+
+        // Auto-refresh debug info every 3 seconds
+        setInterval(refreshDebugInfo, 3000);
         
-        async function testWithSampleData() {
-            // Clear and rebuild the test trie with sample data
-            testTrie = new ACT();
-            
-            // Sample words that might be found in a GitHub PR
-            const sampleWords = [
-                'function', 'class', 'const', 'let', 'var', 'return',
-                'import', 'export', 'async', 'await', 'promise',
-                'component', 'render', 'state', 'props', 'useState',
-                'useEffect', 'handleClick', 'onClick', 'onChange',
-                'interface', 'type', 'string', 'number', 'boolean',
-                'array', 'object', 'null', 'undefined', 'console',
-                'log', 'error', 'warning', 'debug', 'info',
-                'test', 'describe', 'it', 'expect', 'mock',
-                'component', 'service', 'controller', 'model',
-                'database', 'query', 'select', 'insert', 'update',
-                'delete', 'create', 'table', 'index', 'primary',
-                'key', 'foreign', 'constraint', 'validation'
-            ];
-            
-            // Insert all sample words
-            sampleWords.forEach(word => testTrie.insert(word));
-            
-            updateStats();
-            
-            // Show some example suggestions
-            const examplePrefixes = ['fun', 'con', 'use', 'han', 'com'];
-            let exampleHtml = '<h4>Example Suggestions:</h4>';
-            
-            examplePrefixes.forEach(prefix => {
-                const suggestions = testTrie.autoComplete(prefix);
-                exampleHtml += `<p><strong>${prefix}*:</strong> ${suggestions.join(', ')}</p>`;
-            });
-            
-            document.getElementById('suggestions').innerHTML = exampleHtml;
-            
-            alert(`Loaded ${sampleWords.length} sample words into the Trie. Try typing in the textarea!`);
-        }
-        
-        function clearResults() {
-            document.getElementById('testResults').innerHTML = '';
-            document.getElementById('suggestions').innerHTML = '';
-            document.getElementById('stats').innerHTML = '';
-            testTrie = new ACT();
-        }
-        
-        function updateStats() {
-            const stats = document.getElementById('stats');
-            stats.innerHTML = `
-                <p><strong>Total Words:</strong> ${testTrie.size()}</p>
-                <p><strong>Trie Initialized:</strong> ${testTrie.root ? 'Yes' : 'No'}</p>
-                <p><strong>Root Children:</strong> ${testTrie.root ? testTrie.root.children.size : 0}</p>
-            `;
-        }
-        
-        // Interactive textarea testing
-        document.addEventListener('DOMContentLoaded', () => {
-            const textarea = document.getElementById('testInput');
-            let debounceTimer;
-            
-            textarea.addEventListener('input', (e) => {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    const value = e.target.value;
-                    const words = value.split(/\s+/);
-                    const lastWord = words[words.length - 1].trim();
-                    
-                    if (lastWord.length >= 2) {
-                        const suggestions = testTrie.autoComplete(lastWord.toLowerCase());
-                        
-                        let html = `<h4>Suggestions for "${lastWord}":</h4>`;
-                        if (suggestions.length > 0) {
-                            html += `<p>${suggestions.slice(0, 10).join(', ')}</p>`;
-                            if (suggestions.length > 10) {
-                                html += `<p><em>... and ${suggestions.length - 10} more</em></p>`;
-                            }
-                        } else {
-                            html += '<p><em>No suggestions found</em></p>';
-                        }
-                        
-                        document.getElementById('suggestions').innerHTML = html;
-                    } else {
-                        document.getElementById('suggestions').innerHTML = '<p><em>Type at least 2 characters to see suggestions</em></p>';
-                    }
-                }, 300);
-            });
+        // Initial refresh after a delay
+        setTimeout(() => {
+            refreshDebugInfo();
+            showExtractedWords();
+        }, 3000);
+
+        // Log when extension loads
+        window.addEventListener('load', () => {
+            console.log('Test page loaded, waiting for extension...');
         });
-        
-        // Initialize with empty trie
-        updateStats();
     </script>
 </body>
 </html>

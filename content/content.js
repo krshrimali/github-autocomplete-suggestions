@@ -10,9 +10,9 @@ class AutoCompleteUI {
         this.selectedIndex = -1;
         this.isVisible = false;
         
-        // Debounce settings
+        // Debounce settings - reduced delay for better responsiveness
         this.debounceTimer = null;
-        this.debounceDelay = 300;
+        this.debounceDelay = 150; // Reduced from 300ms for faster response
         
         // Keyboard navigation
         this.keys = {
@@ -80,6 +80,24 @@ class AutoCompleteUI {
         });
 
         document.addEventListener('focus', (e) => {
+            // Debug: Log all textarea focus events to help identify GitHub's selectors
+            if (e.target.tagName === 'TEXTAREA' && window.location.hostname.includes('github.com')) {
+                console.log('GitHub PR AutoComplete: Textarea focused - Debug Info:', {
+                    tagName: e.target.tagName,
+                    name: e.target.name,
+                    className: e.target.className,
+                    id: e.target.id,
+                    placeholder: e.target.placeholder,
+                    'aria-label': e.target.getAttribute('aria-label'),
+                    'data-testid': e.target.getAttribute('data-testid'),
+                    'data-target': e.target.getAttribute('data-target'),
+                    'data-component': e.target.getAttribute('data-component'),
+                    parentClasses: e.target.parentElement?.className,
+                    formAction: e.target.closest('form')?.action,
+                    shouldActivate: this.engine.shouldActivateFor(e.target)
+                });
+            }
+            
             if (this.engine.shouldActivateFor(e.target)) {
                 this.currentInput = e.target;
             }
@@ -154,10 +172,25 @@ class AutoCompleteUI {
         if (!input || !this.engine.isInitialized) return;
 
         const value = input.value;
-        const suggestions = this.engine.getSuggestions(value);
-
-        if (suggestions.length > 0) {
-            this.showSuggestions(suggestions, input);
+        const cursorPos = input.selectionStart || value.length;
+        
+        // Get current word at cursor position
+        let wordStart = cursorPos;
+        while (wordStart > 0 && /[a-zA-Z0-9_]/.test(value[wordStart - 1])) {
+            wordStart--;
+        }
+        
+        const currentWord = value.substring(wordStart, cursorPos);
+        
+        // Show suggestions for words with at least 1 character
+        if (currentWord.length >= 1) {
+            const suggestions = this.engine.getSuggestions(value);
+            
+            if (suggestions.length > 0) {
+                this.showSuggestions(suggestions, input);
+            } else {
+                this.hideSuggestions();
+            }
         } else {
             this.hideSuggestions();
         }
@@ -284,24 +317,33 @@ class AutoCompleteUI {
 
         const suggestion = selectedItem.textContent;
         const currentValue = this.currentInput.value;
+        const cursorPos = this.currentInput.selectionStart || currentValue.length;
+        
+        // Find the current word boundaries
+        let wordStart = cursorPos;
+        let wordEnd = cursorPos;
+        
+        // Move backward to find start of current word
+        while (wordStart > 0 && /[a-zA-Z0-9_]/.test(currentValue[wordStart - 1])) {
+            wordStart--;
+        }
+        
+        // Move forward to find end of current word
+        while (wordEnd < currentValue.length && /[a-zA-Z0-9_]/.test(currentValue[wordEnd])) {
+            wordEnd++;
+        }
         
         // Replace the current word with the suggestion
-        const currentWord = this.engine.getCurrentWord(currentValue);
-        const lastWordIndex = currentValue.lastIndexOf(currentWord);
+        const newValue = currentValue.substring(0, wordStart) + suggestion + currentValue.substring(wordEnd);
         
-        if (lastWordIndex >= 0) {
-            const newValue = currentValue.substring(0, lastWordIndex) + suggestion + 
-                           currentValue.substring(lastWordIndex + currentWord.length);
-            
-            this.currentInput.value = newValue;
-            
-            // Set cursor position after the inserted word
-            const cursorPos = lastWordIndex + suggestion.length;
-            this.currentInput.setSelectionRange(cursorPos, cursorPos);
-            
-            // Trigger input event to notify other listeners
-            this.currentInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        this.currentInput.value = newValue;
+        
+        // Set cursor position after the inserted word
+        const newCursorPos = wordStart + suggestion.length;
+        this.currentInput.setSelectionRange(newCursorPos, newCursorPos);
+        
+        // Trigger input event to notify other listeners
+        this.currentInput.dispatchEvent(new Event('input', { bubbles: true }));
         
         this.hideSuggestions();
     }
@@ -317,6 +359,34 @@ class AutoCompleteUI {
             selectedIndex: this.selectedIndex
         };
     }
+
+    /**
+     * Debug function to find all textareas on the page and their attributes
+     */
+    debugTextareas() {
+        const textareas = document.querySelectorAll('textarea');
+        console.log(`Found ${textareas.length} textareas on the page:`);
+        
+        textareas.forEach((textarea, index) => {
+            console.log(`Textarea ${index + 1}:`, {
+                tagName: textarea.tagName,
+                name: textarea.name,
+                className: textarea.className,
+                id: textarea.id,
+                placeholder: textarea.placeholder,
+                'aria-label': textarea.getAttribute('aria-label'),
+                'data-testid': textarea.getAttribute('data-testid'),
+                'data-target': textarea.getAttribute('data-target'),
+                'data-component': textarea.getAttribute('data-component'),
+                parentClasses: textarea.parentElement?.className,
+                formAction: textarea.closest('form')?.action,
+                shouldActivate: this.engine.shouldActivateFor(textarea),
+                element: textarea
+            });
+        });
+        
+        return textareas;
+    }
 }
 
 // Initialize the auto-complete UI when the page loads
@@ -330,14 +400,36 @@ if (document.readyState === 'loading') {
 }
 
 function initializeAutoComplete() {
+    console.log('GitHub PR AutoComplete: Starting initialization...');
+    
+    // Check if we're on a GitHub PR page
+    if (!window.location.href.includes('github.com') || !window.location.href.includes('/pull/')) {
+        console.log('GitHub PR AutoComplete: Not on a GitHub PR page, skipping initialization');
+        return;
+    }
+    
     // Additional wait for GitHub's dynamic content
     setTimeout(() => {
+        console.log('GitHub PR AutoComplete: Creating UI instance...');
         autoCompleteUI = new AutoCompleteUI();
         autoCompleteUI.init();
         
         // Make it globally accessible for debugging
         window.githubPRAutoComplete = autoCompleteUI;
-    }, 1500);
+        
+        // Add global debug functions
+        window.debugGitHubTextareas = () => autoCompleteUI.debugTextareas();
+        window.checkTextareaActivation = (element) => {
+            if (!element) {
+                console.log('Usage: checkTextareaActivation(textareaElement)');
+                return;
+            }
+            return autoCompleteUI.engine.shouldActivateFor(element);
+        };
+        
+        console.log('GitHub PR AutoComplete: UI instance created and available at window.githubPRAutoComplete');
+        console.log('Debug functions available: window.debugGitHubTextareas() and window.checkTextareaActivation(element)');
+    }, 2000); // Increased delay to ensure GitHub content is loaded
 }
 
 // Handle page navigation (GitHub uses PJAX)
