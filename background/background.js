@@ -3,6 +3,24 @@
  * Service worker for the Chrome extension
  */
 
+// Default trigger characters for autocomplete
+const DEFAULT_TRIGGER_CHARACTERS = [
+    '.', // Method/property access
+    '_', // Snake case variables
+    '-', // Kebab case
+    ':', // CSS properties, object keys
+    '/', // File paths
+    '#', // IDs, comments
+    '@', // Mentions, decorators
+    '$', // Variables in some languages
+    '{', // Template literals, object start
+    '(', // Function calls
+    '[', // Array access
+    ' ', // Space for general word completion
+    '\n', // New line
+    '\t'  // Tab
+];
+
 // Extension installation and update handling
 chrome.runtime.onInstalled.addListener((details) => {
     console.log('GitHub PR AutoComplete: Extension installed/updated', details);
@@ -15,12 +33,35 @@ chrome.runtime.onInstalled.addListener((details) => {
             enabled: true,
             maxSuggestions: 10,
             minWordLength: 2,
-            debounceDelay: 300
+            debounceDelay: 300,
+            triggerCharacters: DEFAULT_TRIGGER_CHARACTERS,
+            fuzzyMatching: true,
+            caseInsensitive: true
         });
     }
     
     if (details.reason === 'update') {
         console.log('GitHub PR AutoComplete: Extension updated to version', chrome.runtime.getManifest().version);
+        
+        // Update settings with new defaults if they don't exist
+        chrome.storage.sync.get(null, (settings) => {
+            const updates = {};
+            
+            if (settings.triggerCharacters === undefined) {
+                updates.triggerCharacters = DEFAULT_TRIGGER_CHARACTERS;
+            }
+            if (settings.fuzzyMatching === undefined) {
+                updates.fuzzyMatching = true;
+            }
+            if (settings.caseInsensitive === undefined) {
+                updates.caseInsensitive = true;
+            }
+            
+            if (Object.keys(updates).length > 0) {
+                chrome.storage.sync.set(updates);
+                console.log('GitHub PR AutoComplete: Updated settings with new defaults', updates);
+            }
+        });
     }
 });
 
@@ -40,7 +81,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 'enabled',
                 'maxSuggestions', 
                 'minWordLength',
-                'debounceDelay'
+                'debounceDelay',
+                'triggerCharacters',
+                'fuzzyMatching',
+                'caseInsensitive'
             ], (settings) => {
                 sendResponse({
                     success: true,
@@ -48,7 +92,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         enabled: settings.enabled !== false, // Default to true
                         maxSuggestions: settings.maxSuggestions || 10,
                         minWordLength: settings.minWordLength || 2,
-                        debounceDelay: settings.debounceDelay || 300
+                        debounceDelay: settings.debounceDelay || 300,
+                        triggerCharacters: settings.triggerCharacters || DEFAULT_TRIGGER_CHARACTERS,
+                        fuzzyMatching: settings.fuzzyMatching !== false, // Default to true
+                        caseInsensitive: settings.caseInsensitive !== false // Default to true
                     }
                 });
             });
@@ -58,6 +105,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // Update settings
             chrome.storage.sync.set(request.settings, () => {
                 sendResponse({ success: true });
+                console.log('GitHub PR AutoComplete: Settings updated', request.settings);
+            });
+            return true;
+            
+        case 'resetSettings':
+            // Reset to default settings
+            const defaultSettings = {
+                enabled: true,
+                maxSuggestions: 10,
+                minWordLength: 2,
+                debounceDelay: 300,
+                triggerCharacters: DEFAULT_TRIGGER_CHARACTERS,
+                fuzzyMatching: true,
+                caseInsensitive: true
+            };
+            chrome.storage.sync.set(defaultSettings, () => {
+                sendResponse({ success: true, settings: defaultSettings });
+                console.log('GitHub PR AutoComplete: Settings reset to defaults');
             });
             return true;
             

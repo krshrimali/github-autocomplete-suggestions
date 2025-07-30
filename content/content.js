@@ -9,6 +9,7 @@ class AutoCompleteUI {
         this.currentInput = null;
         this.selectedIndex = -1;
         this.isVisible = false;
+        this.currentCursorPos = 0;
         
         // Debounce settings
         this.debounceTimer = null;
@@ -33,6 +34,9 @@ class AutoCompleteUI {
         try {
             // Initialize the engine
             await this.engine.initialize();
+            
+            // Update debounce delay from settings
+            this.debounceDelay = this.engine.settings.debounceDelay;
             
             // Create the suggestion box
             this.createSuggestionBox();
@@ -79,9 +83,16 @@ class AutoCompleteUI {
             }
         });
 
+        document.addEventListener('keyup', (e) => {
+            if (this.engine.shouldActivateFor(e.target)) {
+                this.handleKeyUp(e);
+            }
+        });
+
         document.addEventListener('focus', (e) => {
             if (this.engine.shouldActivateFor(e.target)) {
                 this.currentInput = e.target;
+                this.currentCursorPos = e.target.selectionStart || 0;
             }
         }, true);
 
@@ -92,6 +103,13 @@ class AutoCompleteUI {
             }
         }, true);
 
+        // Track cursor position changes
+        document.addEventListener('selectionchange', () => {
+            if (this.currentInput && document.activeElement === this.currentInput) {
+                this.currentCursorPos = this.currentInput.selectionStart || 0;
+            }
+        });
+
         // Hide suggestions when clicking elsewhere
         document.addEventListener('click', (e) => {
             if (!this.suggestionBox.contains(e.target) && 
@@ -99,6 +117,16 @@ class AutoCompleteUI {
                 this.hideSuggestions();
             }
         });
+
+        // Listen for settings updates
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+            chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+                if (request.action === 'settingsUpdated') {
+                    this.engine.updateSettings(request.settings);
+                    this.debounceDelay = this.engine.settings.debounceDelay;
+                }
+            });
+        }
     }
 
     /**
@@ -106,11 +134,32 @@ class AutoCompleteUI {
      * @param {Event} e - Input event
      */
     handleInput(e) {
+        this.currentInput = e.target;
+        this.currentCursorPos = e.target.selectionStart || 0;
+        
         clearTimeout(this.debounceTimer);
         
         this.debounceTimer = setTimeout(() => {
             this.updateSuggestions(e.target);
         }, this.debounceDelay);
+    }
+
+    /**
+     * Handle key up events to track cursor position
+     * @param {KeyboardEvent} e - Keyboard event
+     */
+    handleKeyUp(e) {
+        if (e.target === this.currentInput) {
+            this.currentCursorPos = e.target.selectionStart || 0;
+            
+            // Update suggestions if cursor moved significantly
+            if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.updateSuggestions(e.target);
+                }, this.debounceDelay / 2); // Faster response for navigation
+            }
+        }
     }
 
     /**
@@ -154,7 +203,8 @@ class AutoCompleteUI {
         if (!input || !this.engine.isInitialized) return;
 
         const value = input.value;
-        const suggestions = this.engine.getSuggestions(value);
+        const cursorPos = input.selectionStart || value.length;
+        const suggestions = this.engine.getSuggestions(value, this.engine.maxSuggestions, cursorPos);
 
         if (suggestions.length > 0) {
             this.showSuggestions(suggestions, input);
@@ -188,6 +238,18 @@ class AutoCompleteUI {
                 this.applySuggestion();
             });
             
+            // Add hover handler
+            item.addEventListener('mouseenter', () => {
+                // Remove previous selection
+                const prevSelected = this.suggestionBox.querySelector('.selected');
+                if (prevSelected) {
+                    prevSelected.classList.remove('selected');
+                }
+                // Select current item
+                item.classList.add('selected');
+                this.selectedIndex = index;
+            });
+            
             this.suggestionBox.appendChild(item);
         });
         
@@ -207,7 +269,6 @@ class AutoCompleteUI {
             this.suggestionBox.style.display = 'none';
             this.isVisible = false;
             this.selectedIndex = -1;
-            this.currentInput = null;
         }
     }
 
@@ -224,6 +285,7 @@ class AutoCompleteUI {
         this.suggestionBox.style.left = (rect.left + scrollLeft) + 'px';
         this.suggestionBox.style.top = (rect.bottom + scrollTop + 2) + 'px';
         this.suggestionBox.style.minWidth = rect.width + 'px';
+        this.suggestionBox.style.maxWidth = Math.max(rect.width, 300) + 'px';
         this.suggestionBox.style.zIndex = '10000';
     }
 
@@ -237,13 +299,13 @@ class AutoCompleteUI {
             items[this.selectedIndex].classList.remove('selected');
             this.selectedIndex--;
         } else {
-            this.selectedIndex = items.length - 1;
-            if (items.length > 0) {
+            if (this.selectedIndex === 0) {
                 items[0].classList.remove('selected');
             }
+            this.selectedIndex = items.length - 1;
         }
         
-        if (this.selectedIndex >= 0) {
+        if (this.selectedIndex >= 0 && items[this.selectedIndex]) {
             items[this.selectedIndex].classList.add('selected');
         }
     }
@@ -284,24 +346,43 @@ class AutoCompleteUI {
 
         const suggestion = selectedItem.textContent;
         const currentValue = this.currentInput.value;
+        const cursorPos = this.currentInput.selectionStart || currentValue.length;
+        
+        // Get the current word being typed
+        const currentWord = this.engine.getCurrentWord(currentValue, cursorPos);
+        
+        if (!currentWord) {
+            this.hideSuggestions();
+            return;
+        }
+        
+        // Find the position of the current word
+        let wordStart = cursorPos;
+        while (wordStart > 0 && /[a-zA-Z0-9_\-.]/.test(currentValue[wordStart - 1])) {
+            wordStart--;
+        }
+        
+        let wordEnd = cursorPos;
+        while (wordEnd < currentValue.length && /[a-zA-Z0-9_\-.]/.test(currentValue[wordEnd])) {
+            wordEnd++;
+        }
         
         // Replace the current word with the suggestion
-        const currentWord = this.engine.getCurrentWord(currentValue);
-        const lastWordIndex = currentValue.lastIndexOf(currentWord);
+        const newValue = currentValue.substring(0, wordStart) + suggestion + currentValue.substring(wordEnd);
         
-        if (lastWordIndex >= 0) {
-            const newValue = currentValue.substring(0, lastWordIndex) + suggestion + 
-                           currentValue.substring(lastWordIndex + currentWord.length);
-            
-            this.currentInput.value = newValue;
-            
-            // Set cursor position after the inserted word
-            const cursorPos = lastWordIndex + suggestion.length;
-            this.currentInput.setSelectionRange(cursorPos, cursorPos);
-            
-            // Trigger input event to notify other listeners
-            this.currentInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        // Update the input value
+        this.currentInput.value = newValue;
+        
+        // Set cursor position after the inserted word
+        const newCursorPos = wordStart + suggestion.length;
+        this.currentInput.setSelectionRange(newCursorPos, newCursorPos);
+        this.currentCursorPos = newCursorPos;
+        
+        // Trigger input event to notify other listeners
+        this.currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+        
+        // Focus back on the input
+        this.currentInput.focus();
         
         this.hideSuggestions();
     }
@@ -314,7 +395,8 @@ class AutoCompleteUI {
             ...this.engine.getStats(),
             isUIVisible: this.isVisible,
             currentInputActive: !!this.currentInput,
-            selectedIndex: this.selectedIndex
+            selectedIndex: this.selectedIndex,
+            currentCursorPos: this.currentCursorPos
         };
     }
 }
