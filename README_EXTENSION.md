@@ -1,172 +1,122 @@
 # GitHub PR AutoComplete Extension
 
-A Chrome/Edge browser extension that provides intelligent auto-complete suggestions when reviewing GitHub Pull Requests. The extension extracts words from the "Files changed" tab and provides context-aware suggestions while typing comments or reviews.
+A Chrome extension that provides intelligent autocomplete suggestions for GitHub Pull Request comments based on the code changes in the PR.
 
 ## Features
 
-- 🔍 **Smart Word Extraction**: Analyzes code changes, file names, and existing comments
-- ⚡ **Fast Auto-Complete**: Uses a Trie data structure (ported from C++) for efficient prefix matching
-- 🎨 **GitHub-Native UI**: Seamlessly integrates with GitHub's design language
-- ⌨️ **Keyboard Navigation**: Full keyboard support (↑↓ arrows, Enter, Tab, Escape)
-- 🌙 **Dark Mode Support**: Automatically adapts to GitHub's light/dark themes
-- 📱 **Mobile Responsive**: Works on mobile GitHub interface
-- ♿ **Accessibility**: Supports screen readers and high contrast mode
-
-## How It Works
-
-1. **Page Load**: When you visit a GitHub PR page, the extension scans the "Files changed" tab
-2. **Word Extraction**: Intelligently extracts meaningful words from:
-   - Code changes (added, removed, and context lines)
-   - File names and paths
-   - Existing comments and reviews
-   - Variable names, function names, and programming keywords
-3. **Trie Building**: Builds a fast Trie data structure for efficient auto-complete
-4. **Real-time Suggestions**: As you type in comment boxes, provides relevant suggestions
-5. **Smart Filtering**: Prioritizes shorter, more relevant words and excludes common noise words
+- **Smart Word Extraction**: Automatically extracts meaningful words from PR code changes
+- **Fuzzy Matching**: Suggests words even with typos using edit distance
+- **Case Insensitive**: Works regardless of case
+- **Configurable Triggers**: Customizable trigger characters
+- **Real-time Updates**: Monitors PR changes and updates suggestions
+- **Fallback Words**: Includes common programming terms when no PR content is found
 
 ## Installation
 
-### From Source (Development)
-
-1. Clone this repository:
-   ```bash
-   git clone <repository-url>
-   cd github-pr-autocomplete
-   ```
-
-2. Open Chrome/Edge and navigate to `chrome://extensions/` (or `edge://extensions/`)
-
-3. Enable "Developer mode" (toggle in top right)
-
+1. Clone this repository
+2. Open Chrome and go to `chrome://extensions/`
+3. Enable "Developer mode"
 4. Click "Load unpacked" and select the extension directory
+5. The extension will automatically activate on GitHub PR pages
 
-5. The extension will now be active on GitHub PR pages
+## Testing
 
-### From Chrome Web Store (Coming Soon)
+### Method 1: Test Page
+1. Open `test_extension.html` in your browser
+2. Type in the textarea to test autocomplete functionality
+3. Check the console for debug information
 
-The extension will be available on the Chrome Web Store once published.
+### Method 2: GitHub PR Page
+1. Go to any GitHub Pull Request page
+2. Open the browser console (F12)
+3. Look for "GitHub PR AutoComplete" log messages
+4. Try typing in comment textareas
 
-## Usage
+### Method 3: Simple Test Script
+1. Open `simple_test.js` in a browser console
+2. Run the test functions to verify components are working
 
-1. **Navigate to a GitHub PR**: Visit any GitHub Pull Request page
-2. **Wait for Initialization**: The extension will automatically scan the PR content (check console for "GitHub PR AutoComplete: Initialized" message)
-3. **Start Typing**: Click in any comment box and start typing
-4. **See Suggestions**: Auto-complete suggestions will appear after typing 2+ characters
-5. **Navigate**: Use ↑↓ arrow keys to navigate suggestions
-6. **Select**: Press Enter or Tab to apply a suggestion
-7. **Dismiss**: Press Escape to hide suggestions
+## Debugging
 
-### Supported Input Fields
+The extension includes comprehensive debug logging. To see debug information:
 
-The extension works in:
-- PR review comments
-- General PR comments  
-- Commit comments
-- Code review suggestions
-- Issue comments (on PR pages)
+1. Open browser console (F12)
+2. Look for messages starting with "GitHub PR AutoComplete:"
+3. Check for any error messages
 
-## Keyboard Shortcuts
+### Common Issues
 
-| Key | Action |
-|-----|--------|
-| `↑` | Navigate up in suggestions |
-| `↓` | Navigate down in suggestions |
-| `Enter` | Apply selected suggestion |
-| `Tab` | Apply selected suggestion |
-| `Escape` | Hide suggestions |
+**No words extracted (0 in console):**
+- The parser might not be finding the right DOM elements
+- Try refreshing the page or waiting for content to load
+- Check if you're on a valid GitHub PR page
 
-## Development
+**No suggestions appearing:**
+- Check if the extension is enabled in settings
+- Verify trigger characters are configured correctly
+- Look for console errors in the debug output
 
-### Architecture
-
-The extension consists of several key components:
-
-- **`lib/trie.js`**: JavaScript port of the C++ Trie implementation
-- **`lib/parser.js`**: GitHub content parser for extracting words
-- **`lib/autocomplete.js`**: Main auto-complete engine
-- **`content/content.js`**: UI handling and user interactions
-- **`styles/autocomplete.css`**: GitHub-integrated styling
-- **`background/background.js`**: Extension background service worker
-
-### Debugging
-
-1. Open Chrome DevTools on a GitHub PR page
-2. Check the Console for extension logs
-3. Access the global object: `window.githubPRAutoComplete`
-4. Get statistics: `window.githubPRAutoComplete.getStats()`
-5. Manually refresh: `window.githubPRAutoComplete.engine.refresh()`
+**Extension not loading:**
+- Verify the manifest.json is valid
+- Check that all required files are present
+- Ensure the extension is properly installed
 
 ## Configuration
 
-The extension stores settings in Chrome's sync storage:
+The extension can be configured through the options page:
 
-- `enabled`: Enable/disable the extension (default: true)
-- `maxSuggestions`: Maximum suggestions to show (default: 10)
-- `minWordLength`: Minimum word length to include (default: 2)
-- `debounceDelay`: Typing delay before showing suggestions (default: 300ms)
+- **Enabled**: Toggle the extension on/off
+- **Max Suggestions**: Maximum number of suggestions to show
+- **Min Word Length**: Minimum word length to consider
+- **Debounce Delay**: Delay before showing suggestions
+- **Trigger Characters**: Characters that activate autocomplete
+- **Fuzzy Matching**: Enable/disable fuzzy matching
+- **Case Insensitive**: Enable/disable case insensitive matching
 
-## Privacy
+## File Structure
 
-This extension:
-- ✅ Only runs on GitHub.com PR pages
-- ✅ Processes content locally in your browser
-- ✅ Does not send any data to external servers
-- ✅ Does not track or store personal information
-- ✅ Only accesses publicly visible PR content
+```
+├── manifest.json              # Extension manifest
+├── background/                # Background scripts
+│   └── background.js         # Settings management
+├── content/                  # Content scripts
+│   └── content.js           # UI and event handling
+├── lib/                     # Core library files
+│   ├── trie.js             # Trie data structure
+│   ├── parser.js           # GitHub content parser
+│   └── autocomplete.js     # Main autocomplete engine
+├── styles/                  # CSS styles
+│   └── autocomplete.css    # Suggestion box styles
+├── test_extension.html      # Test page
+├── simple_test.js          # Simple test script
+└── README_EXTENSION.md     # This file
+```
 
-## Browser Compatibility
+## Development
 
-- ✅ Chrome 88+
-- ✅ Edge 88+
-- ✅ Other Chromium-based browsers
+To modify the extension:
+
+1. Make changes to the source files
+2. Reload the extension in `chrome://extensions/`
+3. Refresh the GitHub page to test changes
+
+### Key Components
+
+- **AutoCompleteEngine**: Main engine that coordinates everything
+- **GitHubParser**: Extracts words from GitHub PR content
+- **ACT (Trie)**: Data structure for efficient word storage and search
+- **AutoCompleteUI**: Handles user interface and interactions
+
+## Troubleshooting
+
+If you're still having issues:
+
+1. Check the browser console for error messages
+2. Verify all files are properly loaded
+3. Test with the provided test files
+4. Ensure you're on a GitHub PR page
+5. Try disabling other extensions that might interfere
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes
-4. Test thoroughly on various GitHub PRs
-5. Submit a pull request
-
-### Development Setup
-
-```bash
-# Install dependencies (if any)
-npm install
-
-# Load extension in Chrome for testing
-# Go to chrome://extensions/, enable Developer mode, click "Load unpacked"
-```
-
-## Roadmap
-
-- [ ] Firefox extension support
-- [ ] Custom word lists
-- [ ] Frequency-based ranking
-- [ ] Multi-language code parsing
-- [ ] Settings UI panel
-- [ ] Export/import word lists
-- [ ] GitHub Enterprise support
-
-## License
-
-MIT License - see LICENSE file for details.
-
-## Credits
-
-- Original C++ Trie implementation by [Your Name]
-- Inspired by modern IDE auto-complete features
-- Built for the GitHub developer community
-
-## Support
-
-If you encounter issues:
-
-1. Check the browser console for error messages
-2. Verify you're on a GitHub PR page with file changes
-3. Try refreshing the page
-4. Open an issue with reproduction steps
-
----
-
-**Made with ❤️ for the GitHub community**
+Feel free to submit issues and pull requests to improve the extension!
