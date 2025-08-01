@@ -3,516 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub PR AutoComplete - Test Suite</title>
+    <title>GitHub PR AutoComplete Test</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f6f8fa;
         }
-        
-        .container {
-            background: white;
-            border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        h1, h2 {
-            color: #0969da;
-        }
-        
         .test-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #d1d9e0;
-            border-radius: 6px;
-        }
-        
-        .test-input {
-            width: 100%;
-            min-height: 100px;
-            padding: 12px;
-            border: 1px solid #d1d9e0;
-            border-radius: 6px;
-            font-family: 'SF Mono', Monaco, monospace;
-            font-size: 14px;
-            resize: vertical;
-        }
-        
-        .test-results {
-            margin-top: 15px;
+            margin: 20px 0;
             padding: 15px;
-            background-color: #f6f8fa;
-            border-radius: 6px;
-            font-family: 'SF Mono', Monaco, monospace;
-            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
         }
-        
-        .success { color: #166534; }
-        .error { color: #dc2626; }
-        .info { color: #0969da; }
-        
-        .button {
-            background: #0969da;
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .stats {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007cba;
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 3px;
             cursor: pointer;
             margin: 5px;
         }
-        
-        .button:hover {
-            background: #0860ca;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .stat-card {
-            padding: 15px;
-            background: #f6f8fa;
-            border-radius: 6px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #0969da;
-        }
-        
-        .trigger-chars {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin: 10px 0;
-        }
-        
-        .trigger-char {
-            background: #0969da;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: monospace;
-            font-size: 12px;
+        button:hover {
+            background: #005a87;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>GitHub PR AutoComplete - Test Suite</h1>
-        <p>This page simulates a GitHub PR environment to test the autocomplete functionality.</p>
-        
-        <div class="stats" id="stats">
-            <div class="stat-card">
-                <div class="stat-value" id="wordCount">0</div>
-                <div>Words in Trie</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="isInitialized">❌</div>
-                <div>Initialized</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="fuzzyEnabled">❌</div>
-                <div>Fuzzy Matching</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="caseInsensitive">❌</div>
-                <div>Case Insensitive</div>
-            </div>
-        </div>
-        
-        <div class="test-section">
-            <h2>Mock PR Content</h2>
-            <p>This simulates the "Files Changed" content that would be parsed:</p>
-            <div id="mockPRContent">
-                <div class="file-content">
-                    <h3>src/components/UserProfile.js</h3>
-                    <pre><code>function UserProfile({ user }) {
-    const [isLoading, setIsLoading] = useState(false);
-    const [userData, setUserData] = useState(null);
+    <h1>GitHub PR AutoComplete Extension Test</h1>
     
-    const fetchUserData = async () => {
-        setIsLoading(true);
-        try {
-            const response = await fetch(`/api/users/${user.id}`);
-            const data = await response.json();
-            setUserData(data);
-        } catch (error) {
-            console.error('Failed to fetch user data:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    <div class="test-section">
+        <h2>Test Textarea</h2>
+        <p>Type in the textarea below to test autocomplete functionality:</p>
+        <textarea id="testTextarea" placeholder="Start typing to test autocomplete..."></textarea>
+    </div>
     
-    return (
-        &lt;div className="user-profile"&gt;
-            {isLoading ? (
-                &lt;LoadingSpinner /&gt;
-            ) : (
-                &lt;ProfileCard user={userData} /&gt;
-            )}
-        &lt;/div&gt;
-    );
-}</code></pre>
-                </div>
-                
-                <div class="file-content">
-                    <h3>src/utils/apiHelpers.js</h3>
-                    <pre><code>export const API_ENDPOINTS = {
-    USERS: '/api/users',
-    PROFILES: '/api/profiles',
-    SETTINGS: '/api/settings'
-};
-
-export function createApiUrl(endpoint, params = {}) {
-    const url = new URL(endpoint, window.location.origin);
-    Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-    });
-    return url.toString();
-}
-
-export async function handleApiError(response) {
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'API request failed');
-    }
-    return response;
-}</code></pre>
-                </div>
-            </div>
-            
-            <button class="button" onclick="initializeEngine()">Initialize AutoComplete Engine</button>
-            <button class="button" onclick="refreshStats()">Refresh Stats</button>
-        </div>
-        
-        <div class="test-section">
-            <h2>Trigger Characters</h2>
-            <p>Current trigger characters:</p>
-            <div class="trigger-chars" id="triggerChars">
-                <!-- Will be populated by JavaScript -->
-            </div>
-        </div>
-        
-        <div class="test-section">
-            <h2>Test Case 1: Basic Autocomplete</h2>
-            <p>Type "func" - should suggest "function", "fetchUserData", etc.</p>
-            <textarea class="test-input" name="comment[body]" placeholder="Start typing 'func'..."></textarea>
-            <div class="test-results" id="results1"></div>
-        </div>
-        
-        <div class="test-section">
-            <h2>Test Case 2: Case Insensitive Matching</h2>
-            <p>Type "FUNCTION" or "Function" - should still suggest "function"</p>
-            <textarea class="test-input" name="comment[body]" placeholder="Try typing 'FUNCTION' or 'Function'..."></textarea>
-            <div class="test-results" id="results2"></div>
-        </div>
-        
-        <div class="test-section">
-            <h2>Test Case 3: Fuzzy Matching</h2>
-            <p>Type "funciton" (with typo) - should suggest "function"</p>
-            <textarea class="test-input" name="comment[body]" placeholder="Try typing 'funciton' or 'respons'..."></textarea>
-            <div class="test-results" id="results3"></div>
-        </div>
-        
-        <div class="test-section">
-            <h2>Test Case 4: Trigger Characters</h2>
-            <p>Type "user." - should trigger autocomplete after the dot</p>
-            <textarea class="test-input" name="comment[body]" placeholder="Try typing 'user.' or 'API_'..."></textarea>
-            <div class="test-results" id="results4"></div>
-        </div>
-        
-        <div class="test-section">
-            <h2>Test Case 5: Mid-word Completion</h2>
-            <p>Place cursor in middle of word and test autocomplete</p>
-            <textarea class="test-input" name="comment[body]" placeholder="Type 'function test' then click between 'func' and 'tion'..."></textarea>
-            <div class="test-results" id="results5"></div>
-        </div>
-        
-        <div class="test-section">
-            <h2>Manual Testing</h2>
-            <p>Free-form testing area. Try various combinations:</p>
-            <textarea class="test-input" name="comment[body]" placeholder="Free testing area - try any words, trigger characters, etc."></textarea>
-            <div class="test-results" id="resultsManual"></div>
-        </div>
-        
-        <div class="test-section">
-            <h2>Performance Test</h2>
-            <button class="button" onclick="runPerformanceTest()">Run Performance Test</button>
-            <div class="test-results" id="performanceResults"></div>
-        </div>
+    <div class="test-section">
+        <h2>Extension Status</h2>
+        <div id="status">Loading...</div>
+        <button onclick="checkStatus()">Check Status</button>
+        <button onclick="refreshWords()">Refresh Words</button>
+        <button onclick="testSuggestions()">Test Suggestions</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Extension Statistics</h2>
+        <div id="stats" class="stats">Loading stats...</div>
     </div>
 
-    <!-- Include the extension files -->
     <script src="lib/trie.js"></script>
     <script src="lib/parser.js"></script>
     <script src="lib/autocomplete.js"></script>
     <script src="content/content.js"></script>
     
     <script>
-        // Mock GitHub environment
-        let mockEngine;
-        let testWords;
+        let autoCompleteUI = null;
         
-        // Initialize test environment
-        function setupTestEnvironment() {
-            // Mock Chrome extension APIs
-            window.chrome = {
-                runtime: {
-                    sendMessage: (message, callback) => {
-                        // Mock settings response
-                        if (message.action === 'getSettings') {
-                            callback({
-                                success: true,
-                                settings: {
-                                    enabled: true,
-                                    maxSuggestions: 10,
-                                    minWordLength: 2,
-                                    debounceDelay: 300,
-                                    triggerCharacters: ['.', '_', '-', ':', '/', '#', '@', '$', '{', '(', '[', ' ', '\n', '\t'],
-                                    fuzzyMatching: true,
-                                    caseInsensitive: true
-                                }
-                            });
-                        }
-                    }
-                }
-            };
-            
-            // Extract test words from mock content
-            const mockContent = document.getElementById('mockPRContent').textContent;
-            testWords = new Set();
-            
-            // Extract JavaScript identifiers and keywords
-            const words = mockContent.match(/\b[a-zA-Z_$][a-zA-Z0-9_$]*\b/g);
-            if (words) {
-                words.forEach(word => {
-                    if (word.length >= 2) {
-                        testWords.add(word);
-                    }
+        function checkStatus() {
+            const statusDiv = document.getElementById('status');
+            if (window.githubPRAutoComplete) {
+                statusDiv.innerHTML = '✅ Extension is loaded and running';
+            } else {
+                statusDiv.innerHTML = '❌ Extension not found';
+            }
+        }
+        
+        function refreshWords() {
+            if (window.githubPRAutoComplete && window.githubPRAutoComplete.engine) {
+                window.githubPRAutoComplete.engine.refresh().then(() => {
+                    updateStats();
                 });
             }
-            
-            console.log('Test words extracted:', testWords);
         }
         
-        async function initializeEngine() {
-            try {
-                mockEngine = new AutoCompleteEngine();
-                
-                // Mock the parser to return our test words
-                mockEngine.parser.extractWordsFromPR = async () => {
-                    return testWords;
-                };
-                
-                // Mock shouldActivateFor to work with our test textareas
-                const originalShouldActivateFor = mockEngine.shouldActivateFor;
-                mockEngine.shouldActivateFor = function(element) {
-                    return element && element.tagName === 'TEXTAREA';
-                };
-                
-                await mockEngine.initialize();
-                
-                // Display trigger characters
-                displayTriggerCharacters();
-                
-                refreshStats();
-                
-                // Set up test result monitoring
-                setupTestMonitoring();
-                
-                document.getElementById('results1').innerHTML = '<span class="success">✓ Engine initialized successfully!</span>';
-                
-            } catch (error) {
-                console.error('Failed to initialize engine:', error);
-                document.getElementById('results1').innerHTML = `<span class="error">✗ Failed to initialize: ${error.message}</span>`;
+        function testSuggestions() {
+            if (window.githubPRAutoComplete && window.githubPRAutoComplete.engine) {
+                const testInput = "func";
+                const suggestions = window.githubPRAutoComplete.engine.getSuggestions(testInput);
+                console.log('Test suggestions for "func":', suggestions);
+                alert(`Test suggestions for "func": ${suggestions.join(', ')}`);
             }
         }
         
-        function displayTriggerCharacters() {
-            const container = document.getElementById('triggerChars');
-            const chars = mockEngine?.settings?.triggerCharacters || [];
-            
-            container.innerHTML = chars.map(char => {
-                let displayChar = char;
-                switch (char) {
-                    case ' ': displayChar = 'space'; break;
-                    case '\n': displayChar = 'newline'; break;
-                    case '\t': displayChar = 'tab'; break;
-                }
-                return `<span class="trigger-char">${displayChar}</span>`;
-            }).join('');
-        }
-        
-        function refreshStats() {
-            if (!mockEngine) {
-                document.getElementById('wordCount').textContent = '0';
-                document.getElementById('isInitialized').textContent = '❌';
-                document.getElementById('fuzzyEnabled').textContent = '❌';
-                document.getElementById('caseInsensitive').textContent = '❌';
-                return;
+        function updateStats() {
+            const statsDiv = document.getElementById('stats');
+            if (window.githubPRAutoComplete) {
+                const stats = window.githubPRAutoComplete.getStats();
+                statsDiv.textContent = JSON.stringify(stats, null, 2);
+            } else {
+                statsDiv.textContent = 'Extension not available';
             }
-            
-            const stats = mockEngine.getStats();
-            document.getElementById('wordCount').textContent = stats.totalWords || 0;
-            document.getElementById('isInitialized').textContent = stats.isInitialized ? '✅' : '❌';
-            document.getElementById('fuzzyEnabled').textContent = stats.settings?.fuzzyMatching ? '✅' : '❌';
-            document.getElementById('caseInsensitive').textContent = stats.settings?.caseInsensitive ? '✅' : '❌';
         }
         
-        function setupTestMonitoring() {
-            const textareas = document.querySelectorAll('.test-input');
-            
-            textareas.forEach((textarea, index) => {
-                const resultDiv = document.getElementById(`results${index + 1}`) || 
-                                document.getElementById('resultsManual');
-                
-                textarea.addEventListener('input', (e) => {
-                    if (!mockEngine) return;
-                    
-                    const value = e.target.value;
-                    const cursorPos = e.target.selectionStart;
-                    const suggestions = mockEngine.getSuggestions(value, 10, cursorPos);
-                    
-                    const currentWord = mockEngine.getCurrentWord(value, cursorPos);
-                    const shouldTrigger = mockEngine.shouldTrigger(value, cursorPos);
-                    
-                    resultDiv.innerHTML = `
-                        <div class="info">Current word: "${currentWord}"</div>
-                        <div class="info">Should trigger: ${shouldTrigger}</div>
-                        <div class="info">Cursor position: ${cursorPos}</div>
-                        <div class="info">Suggestions (${suggestions.length}):</div>
-                        <div>${suggestions.map(s => `<span style="background: #e1f5fe; padding: 2px 4px; margin: 2px; border-radius: 3px;">${s}</span>`).join('')}</div>
-                    `;
-                });
-            });
-        }
-        
-        async function runPerformanceTest() {
-            const resultsDiv = document.getElementById('performanceResults');
-            resultsDiv.innerHTML = '<div class="info">Running performance tests...</div>';
-            
-            if (!mockEngine) {
-                resultsDiv.innerHTML = '<div class="error">Please initialize the engine first</div>';
-                return;
-            }
-            
-            const testCases = [
-                'func',
-                'FUNCTION',
-                'funciton', // typo
-                'user',
-                'api',
-                'response',
-                'error',
-                'data'
-            ];
-            
-            const results = [];
-            
-            for (const testCase of testCases) {
-                const startTime = performance.now();
-                const suggestions = mockEngine.getSuggestions(testCase + ' ', 10);
-                const endTime = performance.now();
-                
-                results.push({
-                    query: testCase,
-                    suggestions: suggestions.length,
-                    time: (endTime - startTime).toFixed(2)
-                });
-            }
-            
-            // Test fuzzy search performance
-            const fuzzyStartTime = performance.now();
-            const fuzzySuggestions = mockEngine.trie.fuzzySearch('funciton', 2, 10);
-            const fuzzyEndTime = performance.now();
-            
-            results.push({
-                query: 'funciton (fuzzy)',
-                suggestions: fuzzySuggestions.length,
-                time: (fuzzyEndTime - fuzzyStartTime).toFixed(2)
-            });
-            
-            const avgTime = results.reduce((sum, r) => sum + parseFloat(r.time), 0) / results.length;
-            
-            resultsDiv.innerHTML = `
-                <div class="success">Performance Test Results:</div>
-                <table style="width: 100%; margin-top: 10px;">
-                    <tr><th>Query</th><th>Suggestions</th><th>Time (ms)</th></tr>
-                    ${results.map(r => `<tr><td>${r.query}</td><td>${r.suggestions}</td><td>${r.time}</td></tr>`).join('')}
-                </table>
-                <div class="info" style="margin-top: 10px;">Average time: ${avgTime.toFixed(2)}ms</div>
-            `;
-        }
-        
-        // Initialize test environment when page loads
+        // Initialize test page
         document.addEventListener('DOMContentLoaded', () => {
-            setupTestEnvironment();
-            
-            // Auto-initialize after a short delay
+            // Wait a bit for the extension to initialize
             setTimeout(() => {
-                initializeEngine();
-            }, 1000);
+                checkStatus();
+                updateStats();
+                
+                // Update stats every 5 seconds
+                setInterval(updateStats, 5000);
+            }, 2000);
         });
-        
-        // Add some test helper functions
-        function testSpecificCase(query, expectedSuggestions) {
-            if (!mockEngine) return false;
-            
-            const suggestions = mockEngine.getSuggestions(query + ' ');
-            const found = expectedSuggestions.every(expected => 
-                suggestions.some(suggestion => 
-                    suggestion.toLowerCase().includes(expected.toLowerCase())
-                )
-            );
-            
-            console.log(`Test "${query}":`, found ? 'PASS' : 'FAIL', {
-                query,
-                expected: expectedSuggestions,
-                actual: suggestions
-            });
-            
-            return found;
-        }
-        
-        // Run automated tests
-        function runAutomatedTests() {
-            console.log('Running automated tests...');
-            
-            const tests = [
-                { query: 'func', expected: ['function'] },
-                { query: 'FUNC', expected: ['function'] },
-                { query: 'user', expected: ['user', 'userData', 'UserProfile'] },
-                { query: 'api', expected: ['API_ENDPOINTS', 'apiHelpers'] },
-            ];
-            
-            const results = tests.map(test => ({
-                ...test,
-                passed: testSpecificCase(test.query, test.expected)
-            }));
-            
-            console.log('Test Results:', results);
-            return results;
-        }
-        
-        // Make functions available globally for debugging
-        window.testUtils = {
-            initializeEngine,
-            refreshStats,
-            runPerformanceTest,
-            runAutomatedTests,
-            testSpecificCase
-        };
     </script>
 </body>
 </html>

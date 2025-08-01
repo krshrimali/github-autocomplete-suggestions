@@ -35,6 +35,11 @@ class AutoCompleteUI {
             // Initialize the engine
             await this.engine.initialize();
             
+            // Check if engine initialization was successful
+            if (!this.engine.isInitialized) {
+                console.warn('GitHub PR AutoComplete: Engine initialization failed, UI will not be fully functional');
+            }
+            
             // Update debounce delay from settings
             this.debounceDelay = this.engine.settings.debounceDelay;
             
@@ -58,6 +63,10 @@ class AutoCompleteUI {
      * Create the suggestion dropdown box
      */
     createSuggestionBox() {
+        // Remove any existing suggestion boxes first
+        const existingBoxes = document.querySelectorAll('.github-pr-autocomplete-suggestions');
+        existingBoxes.forEach(box => box.remove());
+        
         this.suggestionBox = document.createElement('div');
         this.suggestionBox.className = 'github-pr-autocomplete-suggestions';
         this.suggestionBox.style.display = 'none';
@@ -139,6 +148,12 @@ class AutoCompleteUI {
         
         clearTimeout(this.debounceTimer);
         
+        // Immediately hide suggestions if input is empty
+        if (!e.target.value || e.target.value.trim().length === 0) {
+            this.hideSuggestions();
+            return;
+        }
+        
         this.debounceTimer = setTimeout(() => {
             this.updateSuggestions(e.target);
         }, this.debounceDelay);
@@ -200,10 +215,20 @@ class AutoCompleteUI {
      * @param {Element} input - Input element
      */
     updateSuggestions(input) {
-        if (!input || !this.engine.isInitialized) return;
+        if (!input || !this.engine.isInitialized) {
+            this.hideSuggestions();
+            return;
+        }
 
         const value = input.value;
         const cursorPos = input.selectionStart || value.length;
+        
+        // Hide suggestions if input is empty or too short
+        if (!value || value.trim().length === 0) {
+            this.hideSuggestions();
+            return;
+        }
+        
         const suggestions = this.engine.getSuggestions(value, this.engine.maxSuggestions, cursorPos);
 
         if (suggestions.length > 0) {
@@ -219,6 +244,9 @@ class AutoCompleteUI {
      * @param {Element} input - Input element
      */
     showSuggestions(suggestions, input) {
+        // Hide any existing suggestions first
+        this.hideSuggestions();
+        
         this.currentInput = input;
         this.selectedIndex = -1;
         
@@ -267,9 +295,17 @@ class AutoCompleteUI {
     hideSuggestions() {
         if (this.suggestionBox) {
             this.suggestionBox.style.display = 'none';
+            this.suggestionBox.innerHTML = ''; // Clear content
             this.isVisible = false;
             this.selectedIndex = -1;
         }
+        
+        // Also hide any other suggestion boxes that might exist
+        const allSuggestionBoxes = document.querySelectorAll('.github-pr-autocomplete-suggestions');
+        allSuggestionBoxes.forEach(box => {
+            box.style.display = 'none';
+            box.innerHTML = '';
+        });
     }
 
     /**
@@ -399,6 +435,22 @@ class AutoCompleteUI {
             currentCursorPos: this.currentCursorPos
         };
     }
+
+    /**
+     * Clean up the UI and remove suggestion boxes
+     */
+    cleanup() {
+        this.hideSuggestions();
+        
+        // Remove all suggestion boxes from the DOM
+        const allSuggestionBoxes = document.querySelectorAll('.github-pr-autocomplete-suggestions');
+        allSuggestionBoxes.forEach(box => box.remove());
+        
+        this.suggestionBox = null;
+        this.currentInput = null;
+        this.isVisible = false;
+        this.selectedIndex = -1;
+    }
 }
 
 // Initialize the auto-complete UI when the page loads
@@ -414,6 +466,11 @@ if (document.readyState === 'loading') {
 function initializeAutoComplete() {
     // Additional wait for GitHub's dynamic content
     setTimeout(() => {
+        // Clean up any existing UI first
+        if (autoCompleteUI) {
+            autoCompleteUI.cleanup();
+        }
+        
         autoCompleteUI = new AutoCompleteUI();
         autoCompleteUI.init();
         
@@ -433,6 +490,7 @@ new MutationObserver(() => {
         if (url.includes('/pull/')) {
             setTimeout(() => {
                 if (autoCompleteUI) {
+                    autoCompleteUI.cleanup();
                     autoCompleteUI.engine.reset();
                     autoCompleteUI.init();
                 }
